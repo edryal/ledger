@@ -393,23 +393,16 @@ and events, and never entities or repositories.
 
 ```
 org.codeberg.edryal.ledger
-|-- common/
-|   |-- Money.java
-|   |-- problem/                         # @RestControllerAdvice, ProblemDetail types
-|   `-- idempotency/
-|-- bookkeeping/
-|   |-- Ledger.java                      # facade (public API)
-|   |-- AccountId.java, OpenAccount.java, PostEntry.java, PostResult.java ...
-|   |-- domain/                          # pure Java, no Spring/JPA annotations
-|   |   |-- Account.java, AccountCategory.java, Direction.java
-|   |   `-- JournalEntry.java, Posting.java
-|   |-- application/                     # LedgerService implements Ledger, @Transactional
-|   |-- infrastructure/                  # JdbcClient repositories (plain SQL, no JPA)
-|   `-- web/                             # account + statement endpoints
-|-- transfers/      (TransferService, Transfer, web/, persistence/)
-|-- merchants/      (MerchantDirectory facade, FeeSchedule, ApiKey ...)
-|-- payments/       (Payment aggregate + state machine, PaymentCaptured ... events)
-`-- webhooks/       (listeners, delivery dispatcher, signer)
+|-- common/                 # Money, error handling, idempotency (open module)
+|-- bookkeeping/            # public API: Ledger facade, commands, results, IDs, exceptions
+|   |-- domain/             # pure Java model and invariants, no Spring
+|   |-- application/        # LedgerService, transactions
+|   |-- infrastructure/     # repositories (JdbcClient, plain SQL)
+|   `-- web/                # REST endpoints
+|-- transfers/
+|-- merchants/
+|-- payments/
+`-- webhooks/
 ```
 
 Only `bookkeeping` uses a hexagonal split (`domain` / `application` /
@@ -421,25 +414,28 @@ in `bookkeeping`, `PaymentId` in `payments`, and so on.
 
 ### Bookkeeping facade
 
-The facade looks roughly like this:
-
 ```java
 public interface Ledger {
     AccountId open(OpenAccount command);
+    Money balanceOf(AccountId id);
+    AccountId systemAccount(SystemAccount account, Currency currency);
     PostResult post(PostEntry command);      // Posted | Rejected
-    Balance balanceOf(AccountId account);
 }
 
 public sealed interface PostResult {
     record Posted(JournalEntryId entryId) implements PostResult {}
-    record Rejected(RejectionReason reason, AccountId account) implements PostResult {}
+    record Rejected(RejectionReason reason, AccountId accountId) implements PostResult {}
 }
 ```
 
 Business rejections like insufficient funds come back as a **value, not an
 exception**. If they were thrown, Spring would mark the shared transaction
 rollback-only, and the caller couldn't record a `DECLINED` payment in the same
-transaction. Programming errors, such as an unbalanced entry, still throw.
+transaction. Programming errors, such as an unbalanced entry, still throw, and
+so does a duplicate reference (`DuplicateReferenceException`).
+
+System accounts have random IDs, so callers look them up by kind and currency:
+`ledger.systemAccount(SystemAccount.CASH, EUR)` finds `platform.cash.EUR`.
 
 ---
 
@@ -752,7 +748,7 @@ rejects timestamps older than 5 minutes to prevent replays.
 - [x] `Money` in `common` and typed IDs in `bookkeeping`, with unit tests
 - [x] Domain: `Direction`, `AccountCategory`, `Posting`, `JournalEntry`, with invariant tests
 - [x] Flyway `V2`: accounts, balances, journal entries, postings, append-only trigger, system accounts
-- [ ] `Ledger` facade: `Account`, open account, post entry (ordered locking), balance
+- [x] `Ledger` facade: `Account`, open account, post entry (ordered locking), balance
 - [ ] Account, statement (cursor pagination) and journal-entry endpoints
 - [ ] Problem Details error handling
 - [ ] Integrity checks and the `ledger` health contributor
