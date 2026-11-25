@@ -2,7 +2,9 @@ package org.codeberg.edryal.ledger.bookkeeping.domain;
 
 import java.util.Currency;
 import java.util.Objects;
+
 import org.codeberg.edryal.ledger.bookkeeping.AccountId;
+import org.codeberg.edryal.ledger.bookkeeping.Posting;
 
 
 /**

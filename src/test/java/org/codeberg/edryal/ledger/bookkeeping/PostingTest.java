@@ -1,9 +1,8 @@
-package org.codeberg.edryal.ledger.bookkeeping.domain;
+package org.codeberg.edryal.ledger.bookkeeping;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.codeberg.edryal.ledger.bookkeeping.AccountId;
 import org.codeberg.edryal.ledger.common.Money;
 import org.junit.jupiter.api.Test;
 

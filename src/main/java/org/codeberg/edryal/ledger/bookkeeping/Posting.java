@@ -1,7 +1,7 @@
-package org.codeberg.edryal.ledger.bookkeeping.domain;
+package org.codeberg.edryal.ledger.bookkeeping;
 
 import java.util.Objects;
-import org.codeberg.edryal.ledger.bookkeeping.AccountId;
+
 import org.codeberg.edryal.ledger.common.Money;
 
 /**
@@ -9,7 +9,7 @@ import org.codeberg.edryal.ledger.common.Money;
  *
  * <p>The amount is always strictly positive. The {@link Direction} says which way the money
  * moves. Whether a posting increases or decreases a balance depends on the account,
- * see {@link Account#balanceChange(Posting)}.
+ * see {@code Account.balanceChange}.
  */
 public record Posting(AccountId accountId, Direction direction, Money amount) {
 
@@ -31,7 +31,7 @@ public record Posting(AccountId accountId, Direction direction, Money amount) {
     }
 
     // Debits count as +amount, credits as -amount. A balanced entry sums to zero.
-    long signedMinorUnits() {
+    public long signedMinorUnits() {
         return direction == Direction.DEBIT ? amount.minorUnits() : Math.negateExact(amount.minorUnits());
     }
 }

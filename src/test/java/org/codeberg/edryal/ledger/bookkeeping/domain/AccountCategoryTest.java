@@ -2,6 +2,7 @@ package org.codeberg.edryal.ledger.bookkeeping.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.codeberg.edryal.ledger.bookkeeping.Direction;
 import org.junit.jupiter.api.Test;
 
 class AccountCategoryTest {

@@ -9,6 +9,7 @@ import java.util.List;
 
 import org.codeberg.edryal.ledger.bookkeeping.AccountId;
 import org.codeberg.edryal.ledger.bookkeeping.JournalEntryId;
+import org.codeberg.edryal.ledger.bookkeeping.Posting;
 import org.codeberg.edryal.ledger.common.Money;
 import org.junit.jupiter.api.Test;
 

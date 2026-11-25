@@ -1,5 +1,7 @@
 package org.codeberg.edryal.ledger.bookkeeping.domain;
 
+import org.codeberg.edryal.ledger.bookkeeping.Direction;
+
 /**
  * The accounting category of an account, which decides its normal side.
  *

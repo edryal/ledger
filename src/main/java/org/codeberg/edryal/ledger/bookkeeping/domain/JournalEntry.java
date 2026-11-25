@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
 import org.codeberg.edryal.ledger.bookkeeping.JournalEntryId;
+import org.codeberg.edryal.ledger.bookkeeping.Posting;
 
 /**
  * One atomic business event in the ledger, such as a transfer or a payment capture.

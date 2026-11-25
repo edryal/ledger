@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Currency;
+
 import org.codeberg.edryal.ledger.bookkeeping.AccountId;
+import org.codeberg.edryal.ledger.bookkeeping.Posting;
 import org.codeberg.edryal.ledger.common.Money;
 import org.junit.jupiter.api.Test;
 
