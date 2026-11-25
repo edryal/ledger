@@ -525,6 +525,10 @@ and asserted in tests:
 2. Every stored balance equals the balance recomputed from postings.
 3. Per currency, assets equal liabilities plus revenue (trial balance).
 4. The authorization holds balance equals the sum of `AUTHORIZED` payments.
+   Until payments exist, this is "every holds account is zero".
+
+All checks run in one `REPEATABLE READ` transaction, so they see a single
+consistent snapshot even while entries are being posted.
 
 ---
 
@@ -749,9 +753,9 @@ rejects timestamps older than 5 minutes to prevent replays.
 - [x] Domain: `Direction`, `AccountCategory`, `Posting`, `JournalEntry`, with invariant tests
 - [x] Flyway `V2`: accounts, balances, journal entries, postings, append-only trigger, system accounts
 - [x] `Ledger` facade: `Account`, open account, post entry (ordered locking), balance
-- [ ] Account, statement (cursor pagination) and journal-entry endpoints
-- [ ] Problem Details error handling
-- [ ] Integrity checks and the `ledger` health contributor
+- [x] Account, statement (cursor pagination) and journal-entry endpoints
+- [x] Problem Details error handling
+- [x] Integrity checks and the `ledger` health contributor
 
 ### M2 - Funding and transfers
 
