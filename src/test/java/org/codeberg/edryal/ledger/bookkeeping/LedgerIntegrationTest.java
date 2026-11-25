@@ -39,8 +39,7 @@ class LedgerIntegrationTest {
 
     @Test
     void unknownAccountIsNotFound() {
-        assertThatThrownBy(() -> ledger.balanceOf(AccountId.newId()))
-                .isInstanceOf(AccountNotFoundException.class);
+        assertThatThrownBy(() -> ledger.balanceOf(AccountId.newId())).isInstanceOf(AccountNotFoundException.class);
     }
 
     @Test
@@ -100,13 +99,11 @@ class LedgerIntegrationTest {
         AccountId wallet = openWallet();
         String reference = "deposit:" + UUID.randomUUID();
         var command = new PostEntry(reference, "deposit", List.of(
-                Posting.debit(cash(), eur(100)),
-                Posting.credit(wallet, eur(100))));
+                Posting.debit(cash(), eur(100)), Posting.credit(wallet, eur(100))));
 
         ledger.post(command);
 
-        assertThatThrownBy(() -> ledger.post(command))
-                .isInstanceOf(DuplicateReferenceException.class);
+        assertThatThrownBy(() -> ledger.post(command)).isInstanceOf(DuplicateReferenceException.class);
         assertThat(ledger.balanceOf(wallet)).isEqualTo(eur(100));
     }
 
@@ -115,16 +112,14 @@ class LedgerIntegrationTest {
         AccountId wallet = openWallet();
 
         assertThatThrownBy(() -> ledger.post(new PostEntry("test:" + UUID.randomUUID(), "unbalanced", List.of(
-                Posting.debit(cash(), eur(100)),
-                Posting.credit(wallet, eur(99))))))
+                Posting.debit(cash(), eur(100)), Posting.credit(wallet, eur(99))))))
                         .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void postingToUnknownAccountFails() {
         assertThatThrownBy(() -> ledger.post(new PostEntry("test:" + UUID.randomUUID(), "unknown", List.of(
-                Posting.debit(cash(), eur(100)),
-                Posting.credit(AccountId.newId(), eur(100))))))
+                Posting.debit(cash(), eur(100)), Posting.credit(AccountId.newId(), eur(100))))))
                         .isInstanceOf(AccountNotFoundException.class);
     }
 
@@ -134,8 +129,7 @@ class LedgerIntegrationTest {
 
         assertThatThrownBy(() -> ledger.post(new PostEntry("test:" + UUID.randomUUID(), "wrong currency", List.of(
                 Posting.debit(ledger.systemAccount(SystemAccount.CASH, USD), Money.of(100, USD)),
-                Posting.credit(wallet, Money.of(100, USD))))))
-                        .isInstanceOf(IllegalArgumentException.class);
+                Posting.credit(wallet, Money.of(100, USD)))))).isInstanceOf(CurrencyMismatchException.class);
     }
 
     @Test
@@ -180,6 +174,20 @@ class LedgerIntegrationTest {
         assertThat(results).hasAtLeastOneElementOfType(PostResult.Posted.class);
     }
 
+    @Test
+    void openingAccountInUnsupportedCurrencyFails() {
+        Currency chf = Currency.getInstance("CHF");
+
+        assertThatThrownBy(() -> ledger.open(new OpenAccount(AccountType.CUSTOMER_WALLET, chf, UUID.randomUUID())))
+                .isInstanceOf(UnsupportedCurrencyException.class);
+    }
+
+    @Test
+    void systemAccountInUnsupportedCurrencyFails() {
+        assertThatThrownBy(() -> ledger.systemAccount(SystemAccount.CASH, Currency.getInstance("CHF")))
+                .isInstanceOf(UnsupportedCurrencyException.class);
+    }
+
     private AccountId openWallet() {
         return ledger.open(new OpenAccount(AccountType.CUSTOMER_WALLET, EUR, UUID.randomUUID()));
     }
@@ -190,14 +198,12 @@ class LedgerIntegrationTest {
 
     private PostResult deposit(AccountId wallet, long cents) {
         return ledger.post(new PostEntry("deposit:" + UUID.randomUUID(), "deposit", List.of(
-                Posting.debit(cash(), eur(cents)),
-                Posting.credit(wallet, eur(cents)))));
+                Posting.debit(cash(), eur(cents)), Posting.credit(wallet, eur(cents)))));
     }
 
     private PostResult transfer(AccountId from, AccountId to, long cents) {
         return ledger.post(new PostEntry("transfer:" + UUID.randomUUID(), "transfer", List.of(
-                Posting.debit(from, eur(cents)),
-                Posting.credit(to, eur(cents)))));
+                Posting.debit(from, eur(cents)), Posting.credit(to, eur(cents)))));
     }
 
     private static Money eur(long cents) {

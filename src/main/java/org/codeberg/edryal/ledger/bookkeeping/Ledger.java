@@ -11,6 +11,7 @@ public interface Ledger {
      * Opens an account with a zero balance.
      *
      * @return the ID of the new account
+     * @throws UnsupportedCurrencyException if the platform has no system accounts in this currency
      */
     AccountId open(OpenAccount command);
 
@@ -24,7 +25,7 @@ public interface Ledger {
     /**
      * The ID of a system account.
      *
-     * @throws IllegalArgumentException if there is no such account for this currency
+     * @throws UnsupportedCurrencyException if there is no such account for this currency
      */
     AccountId systemAccount(SystemAccount account, Currency currency);
 
@@ -35,7 +36,7 @@ public interface Ledger {
      *
      * @throws AccountNotFoundException    if a posting refers to an unknown account
      * @throws DuplicateReferenceException if an entry with the same reference already exists
-     * @throws IllegalArgumentException    if the entry is invalid (unbalanced, wrong currency, ...)
+     * @throws CurrencyMismatchException   if a posting's currency differs from its account's
      */
     PostResult post(PostEntry command);
 }

@@ -1,8 +1,10 @@
 package org.codeberg.edryal.ledger.common.web;
 
-import jakarta.validation.constraints.NotNull;
 import java.util.Currency;
+
 import org.codeberg.edryal.ledger.common.Money;
+
+import jakarta.validation.constraints.NotNull;
 
 /**
  * How money looks in JSON: {@code {"value": 2599, "currency": "EUR"}}.

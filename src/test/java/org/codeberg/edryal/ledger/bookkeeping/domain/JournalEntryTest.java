@@ -30,9 +30,7 @@ class JournalEntryTest {
     @Test
     void acceptsBalancedCaptureFromReadme() {
         var capture = entry(List.of(
-                Posting.debit(holds, eur(2599)),
-                Posting.credit(merchant, eur(2538)),
-                Posting.credit(fees, eur(61))));
+                Posting.debit(holds, eur(2599)), Posting.credit(merchant, eur(2538)), Posting.credit(fees, eur(61))));
 
         assertThat(capture.postings()).hasSize(3);
     }
@@ -40,9 +38,7 @@ class JournalEntryTest {
     @Test
     void rejectsUnbalancedEntry() {
         assertThatThrownBy(() -> entry(List.of(
-                Posting.debit(holds, eur(2599)),
-                Posting.credit(merchant, eur(2538)),
-                Posting.credit(fees, eur(60)))))
+                Posting.debit(holds, eur(2599)), Posting.credit(merchant, eur(2538)), Posting.credit(fees, eur(60)))))
                         .isInstanceOf(IllegalArgumentException.class)
                         .hasMessageContaining("unbalanced");
     }
@@ -68,8 +64,7 @@ class JournalEntryTest {
     void rejectsEntryBalancedOnlyAcrossCurrencies() {
         // +1000 EUR and -1000 USD sum to 0 as numbers, but no currency balances on its own
         assertThatThrownBy(() -> entry(List.of(
-                Posting.debit(holds, eur(1000)),
-                Posting.credit(merchant, Money.of(1000, "USD")))))
+                Posting.debit(holds, eur(1000)), Posting.credit(merchant, Money.of(1000, "USD")))))
                         .isInstanceOf(IllegalArgumentException.class)
                         .hasMessageContaining("unbalanced");
     }
@@ -77,10 +72,8 @@ class JournalEntryTest {
     @Test
     void acceptsEntryBalancedInEachCurrency() {
         var entry = entry(List.of(
-                Posting.debit(holds, eur(1000)),
-                Posting.credit(merchant, eur(1000)),
-                Posting.debit(fees, Money.of(500, "USD")),
-                Posting.credit(holds, Money.of(500, "USD"))));
+                Posting.debit(holds, eur(1000)), Posting.credit(merchant, eur(1000)),
+                Posting.debit(fees, Money.of(500, "USD")), Posting.credit(holds, Money.of(500, "USD"))));
 
         assertThat(entry.postings()).hasSize(4);
     }
@@ -88,8 +81,7 @@ class JournalEntryTest {
     @Test
     void isNotAffectedByChangesToTheOriginalList() {
         var postings = new ArrayList<>(List.of(
-                Posting.debit(holds, eur(100)),
-                Posting.credit(merchant, eur(100))));
+                Posting.debit(holds, eur(100)), Posting.credit(merchant, eur(100))));
         var entry = entry(postings);
 
         postings.add(Posting.debit(fees, eur(999)));
@@ -100,8 +92,7 @@ class JournalEntryTest {
     @Test
     void postingsCannotBeModified() {
         var entry = entry(List.of(
-                Posting.debit(holds, eur(100)),
-                Posting.credit(merchant, eur(100))));
+                Posting.debit(holds, eur(100)), Posting.credit(merchant, eur(100))));
 
         assertThatThrownBy(() -> entry.postings().add(Posting.debit(fees, eur(1))))
                 .isInstanceOf(UnsupportedOperationException.class);

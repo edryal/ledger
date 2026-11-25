@@ -69,8 +69,8 @@ public record Money(long minorUnits, Currency currency) {
     private void requireSameCurrency(Money other) {
         Objects.requireNonNull(other, "other must not be null");
         if (!currency.equals(other.currency)) {
-            throw new IllegalArgumentException("currency mismatch: " + currency.getCurrencyCode() + " vs " +
-                    other.currency.getCurrencyCode());
+            throw new IllegalArgumentException(
+                    "currency mismatch: " + currency.getCurrencyCode() + " vs " + other.currency.getCurrencyCode());
         }
     }
 

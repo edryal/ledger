@@ -32,13 +32,8 @@ class StatementController {
     record StatementResponse(List<LineResponse> data, String nextCursor) {
     }
 
-    record LineResponse(UUID postingId,
-                        UUID entryId,
-                        String reference,
-                        String description,
-                        Direction direction,
-                        MoneyBody amount,
-                        Instant postedAt) {
+    record LineResponse(UUID postingId, UUID entryId, String reference, String description, Direction direction,
+                        MoneyBody amount, Instant postedAt) {
     }
 
     @GetMapping("/v1/accounts/{id}/postings")
@@ -50,12 +45,7 @@ class StatementController {
 
     private static LineResponse toResponse(StatementLine line) {
         return new LineResponse(
-                line.postingId(),
-                line.entryId().value(),
-                line.reference(),
-                line.description(),
-                line.direction(),
-                MoneyBody.from(line.amount()),
-                line.postedAt());
+                line.postingId(), line.entryId().value(), line.reference(), line.description(), line.direction(),
+                MoneyBody.from(line.amount()), line.postedAt());
     }
 }

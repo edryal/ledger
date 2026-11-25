@@ -40,10 +40,7 @@ public class AccountRepository {
         jdbc.sql("""
                 INSERT INTO account_balances (account_id, allow_negative)
                 VALUES (:id, :allowNegative)
-                """)
-                .param("id", account.id().value())
-                .param("allowNegative", account.allowNegative())
-                .update();
+                """).param("id", account.id().value()).param("allowNegative", account.allowNegative()).update();
     }
 
     public Optional<Money> findBalance(AccountId id) {
@@ -55,8 +52,7 @@ public class AccountRepository {
                 """)
                 .param("id", id.value())
                 .query((resultSet, rowNum) -> Money.of(
-                        resultSet.getLong("balance"),
-                        Currency.getInstance(resultSet.getString("currency"))))
+                        resultSet.getLong("balance"), Currency.getInstance(resultSet.getString("currency"))))
                 .optional();
     }
 
@@ -98,9 +94,6 @@ public class AccountRepository {
                 UPDATE account_balances
                 SET balance = :balance, updated_at = now()
                 WHERE account_id = :id
-                """)
-                .param("balance", balance)
-                .param("id", id.value())
-                .update();
+                """).param("balance", balance).param("id", id.value()).update();
     }
 }

@@ -22,10 +22,7 @@ import org.codeberg.edryal.ledger.bookkeeping.Posting;
  *
  * <p>Entries are immutable and are never changed after posting. Mistakes are corrected with a reversal entry.
  */
-public record JournalEntry(JournalEntryId id,
-                           String reference,
-                           String description,
-                           Instant postedAt,
+public record JournalEntry(JournalEntryId id, String reference, String description, Instant postedAt,
                            List<Posting> postings) {
 
     public JournalEntry {
@@ -52,8 +49,8 @@ public record JournalEntry(JournalEntryId id,
 
         netByCurrency.forEach((currency, net) -> {
             if (net != 0) {
-                throw new IllegalArgumentException("entry is unbalanced in " + currency + " by " + net +
-                        " minor units");
+                throw new IllegalArgumentException(
+                        "entry is unbalanced in " + currency + " by " + net + " minor units");
             }
         });
     }

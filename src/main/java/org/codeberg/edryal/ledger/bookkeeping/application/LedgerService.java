@@ -9,6 +9,7 @@ import java.util.Map;
 import org.codeberg.edryal.ledger.bookkeeping.AccountId;
 import org.codeberg.edryal.ledger.bookkeeping.AccountNotFoundException;
 import org.codeberg.edryal.ledger.bookkeeping.AccountType;
+import org.codeberg.edryal.ledger.bookkeeping.CurrencyMismatchException;
 import org.codeberg.edryal.ledger.bookkeeping.JournalEntryId;
 import org.codeberg.edryal.ledger.bookkeeping.Ledger;
 import org.codeberg.edryal.ledger.bookkeeping.OpenAccount;
@@ -17,6 +18,7 @@ import org.codeberg.edryal.ledger.bookkeeping.PostResult;
 import org.codeberg.edryal.ledger.bookkeeping.Posting;
 import org.codeberg.edryal.ledger.bookkeeping.RejectionReason;
 import org.codeberg.edryal.ledger.bookkeeping.SystemAccount;
+import org.codeberg.edryal.ledger.bookkeeping.UnsupportedCurrencyException;
 import org.codeberg.edryal.ledger.bookkeeping.domain.Account;
 import org.codeberg.edryal.ledger.bookkeeping.domain.AccountCategory;
 import org.codeberg.edryal.ledger.bookkeeping.domain.JournalEntry;
@@ -41,6 +43,7 @@ class LedgerService implements Ledger {
 
     @Override
     public AccountId open(OpenAccount command) {
+        systemAccount(SystemAccount.CASH, command.currency());
         var account = new Account(AccountId.newId(), categoryOf(command.type()), command.currency(), false);
         accounts.insert(account, command.type(), command.ownerId());
         return account.id();
@@ -56,8 +59,7 @@ class LedgerService implements Ledger {
     @Transactional(readOnly = true)
     public AccountId systemAccount(SystemAccount account, Currency currency) {
         String code = account.code(currency);
-        return accounts.findIdByCode(code)
-                .orElseThrow(() -> new IllegalArgumentException("no system account " + code));
+        return accounts.findIdByCode(code).orElseThrow(() -> new UnsupportedCurrencyException(currency));
     }
 
     @Override
@@ -77,8 +79,14 @@ class LedgerService implements Ledger {
             if (current == null) {
                 throw new AccountNotFoundException(posting.accountId());
             }
+
+            Account account = current.account();
+            if (!account.currency().equals(posting.amount().currency())) {
+                throw new CurrencyMismatchException(account.id(), account.currency(), posting.amount().currency());
+            }
+
             long before = newBalances.getOrDefault(posting.accountId(), current.balance());
-            newBalances.put(posting.accountId(), Math.addExact(before, current.account().balanceChange(posting)));
+            newBalances.put(posting.accountId(), Math.addExact(before, account.balanceChange(posting)));
         }
 
         // 4. Reject before writing anything if an account would go below what it permits.

@@ -25,9 +25,8 @@ public class IntegrityRepository {
                 GROUP BY e.id, e.reference, p.currency
                 HAVING sum(CASE p.direction WHEN 'DEBIT' THEN p.amount ELSE -p.amount END) <> 0
                 """)
-                .query((resultSet, rowNum) -> "entry %s is unbalanced in %s by %d"
-                        .formatted(resultSet.getString("reference"), resultSet.getString("currency"),
-                                resultSet.getLong("net")))
+                .query((resultSet, rowNum) -> "entry %s is unbalanced in %s by %d".formatted(
+                        resultSet.getString("reference"), resultSet.getString("currency"), resultSet.getLong("net")))
                 .list();
     }
 
@@ -45,9 +44,8 @@ public class IntegrityRepository {
                         HAVING b.balance <> coalesce(sum(CASE WHEN p.direction = (CASE a.category WHEN 'ASSET' THEN 'DEBIT' ELSE 'CREDIT' END)
                                                               THEN p.amount ELSE -p.amount END), 0)
                         """)
-                .query((resultSet, rowNum) -> "account %s has stored balance %d but postings sum to %d"
-                        .formatted(resultSet.getObject("id"), resultSet.getLong("balance"),
-                                resultSet.getLong("computed")))
+                .query((resultSet, rowNum) -> "account %s has stored balance %d but postings sum to %d".formatted(
+                        resultSet.getObject("id"), resultSet.getLong("balance"), resultSet.getLong("computed")))
                 .list();
     }
 
@@ -62,9 +60,8 @@ public class IntegrityRepository {
                 HAVING coalesce(sum(amount) FILTER (WHERE direction = 'DEBIT'), 0)
                     <> coalesce(sum(amount) FILTER (WHERE direction = 'CREDIT'), 0)
                 """)
-                .query((resultSet, rowNum) -> "%s debits %d but credits %d"
-                        .formatted(resultSet.getString("currency"), resultSet.getLong("debits"),
-                                resultSet.getLong("credits")))
+                .query((resultSet, rowNum) -> "%s debits %d but credits %d".formatted(resultSet.getString("currency"),
+                        resultSet.getLong("debits"), resultSet.getLong("credits")))
                 .list();
     }
 

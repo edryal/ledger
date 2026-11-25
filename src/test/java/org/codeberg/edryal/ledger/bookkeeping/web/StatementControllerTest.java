@@ -191,7 +191,6 @@ class StatementControllerTest {
     private PostResult deposit(AccountId wallet, long cents) {
         AccountId cash = ledger.systemAccount(SystemAccount.CASH, EUR);
         return ledger.post(new PostEntry("deposit:" + UUID.randomUUID(), "deposit", List.of(
-                Posting.debit(cash, Money.of(cents, EUR)),
-                Posting.credit(wallet, Money.of(cents, EUR)))));
+                Posting.debit(cash, Money.of(cents, EUR)), Posting.credit(wallet, Money.of(cents, EUR)))));
     }
 }

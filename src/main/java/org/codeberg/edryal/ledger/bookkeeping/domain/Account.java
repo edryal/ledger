@@ -36,8 +36,8 @@ public record Account(AccountId id, AccountCategory category, Currency currency,
         }
 
         if (!posting.amount().currency().equals(currency)) {
-            throw new IllegalArgumentException("posting currency " + posting.amount().currency() +
-                    " does not match account currency " + currency);
+            throw new IllegalArgumentException(
+                    "posting currency " + posting.amount().currency() + " does not match account currency " + currency);
         }
 
         long amount = posting.amount().minorUnits();

@@ -33,10 +33,7 @@ class JournalEntryController {
     EntryResponse get(@PathVariable UUID id) {
         JournalEntry entry = queries.entry(new JournalEntryId(id));
         return new EntryResponse(
-                entry.id().value(),
-                entry.reference(),
-                entry.description(),
-                entry.postedAt(),
+                entry.id().value(), entry.reference(), entry.description(), entry.postedAt(),
                 entry.postings()
                         .stream()
                         .map(p -> new PostingResponse(p.accountId().value(), p.direction(), MoneyBody.from(p.amount())))

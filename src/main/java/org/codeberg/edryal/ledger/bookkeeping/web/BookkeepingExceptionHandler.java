@@ -3,8 +3,10 @@ package org.codeberg.edryal.ledger.bookkeeping.web;
 import java.net.URI;
 
 import org.codeberg.edryal.ledger.bookkeeping.AccountNotFoundException;
+import org.codeberg.edryal.ledger.bookkeeping.CurrencyMismatchException;
 import org.codeberg.edryal.ledger.bookkeeping.DuplicateReferenceException;
 import org.codeberg.edryal.ledger.bookkeeping.JournalEntryNotFoundException;
+import org.codeberg.edryal.ledger.bookkeeping.UnsupportedCurrencyException;
 import org.codeberg.edryal.ledger.bookkeeping.application.InvalidCursorException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -40,5 +42,15 @@ class BookkeepingExceptionHandler {
     @ExceptionHandler
     ProblemDetail invalidCursor(InvalidCursorException e) {
         return problem(HttpStatus.BAD_REQUEST, "invalid-cursor", "Invalid cursor", e);
+    }
+
+    @ExceptionHandler
+    ProblemDetail unsupportedCurrency(UnsupportedCurrencyException e) {
+        return problem(HttpStatus.UNPROCESSABLE_CONTENT, "unsupported-currency", "Unsupported currency", e);
+    }
+
+    @ExceptionHandler
+    ProblemDetail currencyMismatch(CurrencyMismatchException e) {
+        return problem(HttpStatus.UNPROCESSABLE_CONTENT, "currency-mismatch", "Currency mismatch", e);
     }
 }

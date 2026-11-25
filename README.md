@@ -176,8 +176,11 @@ HTTP/1.1 201 Created
 
 {
   "id": "0193a1c4-...",
-  "status": "completed",
+  "kind": "TRANSFER",
+  "source_account_id": "0193a1b2-...-catalin",
+  "destination_account_id": "0193a1b2-...-bob",
   "amount": { "value": 2500, "currency": "EUR" },
+  "description": "Dinner",
   "journal_entry_id": "0193a1c4-...",
   "created_at": "2026-11-24T15:21:07.412Z"
 }
@@ -649,7 +652,7 @@ Errors follow RFC 9457 Problem Details (`application/problem+json`):
 | 401 / 403 | `unauthenticated`, `forbidden` |
 | 404 | `not-found` |
 | 409 | `invalid-state-transition`, `concurrent-modification`, `duplicate-reference` |
-| 422 | `insufficient-funds`, `currency-mismatch`, `idempotency-key-reused`, `refund-exceeds-captured`, `amount-below-fee` |
+| 422 | `insufficient-funds`, `currency-mismatch`, `unsupported-currency`, `same-account`, `idempotency-key-reused`, `refund-exceeds-captured`, `amount-below-fee` |
 
 ---
 
