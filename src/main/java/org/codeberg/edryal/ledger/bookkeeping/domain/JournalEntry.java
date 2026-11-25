@@ -8,6 +8,18 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import org.codeberg.edryal.ledger.bookkeeping.JournalEntryId;
 
+/**
+ * One atomic business event in the ledger, such as a transfer or a payment capture.
+ *
+ * <p>Invariants, checked on construction:
+ * <ul>
+ * <li>at least two postings</li>
+ * <li>for each currency, debits equal credits</li>
+ * <li>a non-blank reference that identifies the business event (e.g. {@code transfer:<id>})</li>
+ * </ul>
+ *
+ * <p>Entries are immutable and are never changed after posting. Mistakes are corrected with a reversal entry.
+ */
 public record JournalEntry(JournalEntryId id,
                            String reference,
                            String description,

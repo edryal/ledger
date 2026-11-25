@@ -1,5 +1,11 @@
 package org.codeberg.edryal.ledger.bookkeeping.domain;
 
+/**
+ * The accounting category of an account, which decides its normal side.
+ *
+ * <p>Postings on the normal side increase the balance, postings on the other side decrease it.
+ * Customer wallets are liabilities because the platform owes that money to the customer.
+ */
 public enum AccountCategory {
 
     ASSET(Direction.DEBIT),
@@ -12,6 +18,7 @@ public enum AccountCategory {
         this.normalSide = normalSide;
     }
 
+    /** The side that increases accounts of this category: debit for assets, credit otherwise. */
     public Direction normalSide() {
         return normalSide;
     }

@@ -4,6 +4,13 @@ import java.util.Objects;
 import org.codeberg.edryal.ledger.bookkeeping.AccountId;
 import org.codeberg.edryal.ledger.common.Money;
 
+/**
+ * One line of a journal entry - an amount moved to the debit or credit side of an account.
+ *
+ * <p>The amount is always strictly positive. The {@link Direction} says which way the money
+ * moves. Whether a posting increases or decreases a balance depends on the account,
+ * see {@link Account#balanceChange(Posting)}.
+ */
 public record Posting(AccountId accountId, Direction direction, Money amount) {
 
     public Posting {

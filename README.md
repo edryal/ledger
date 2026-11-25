@@ -87,12 +87,12 @@ use), and the sum of all debits always equals the sum of all credits.
 
 1. A journal entry has **at least two postings**.
 2. Every posting amount is **strictly positive**. The direction says which way
-   the money moves; amounts are never negative.
+   the money moves, so amounts are never negative.
 3. For each currency in an entry, the **sum of debits equals the sum of credits**.
 4. A posting's currency equals its account's currency.
 5. Journal entries and postings are **append-only**. The code never updates or
-   deletes them, and a database trigger rejects `UPDATE` and `DELETE`. Mistakes
-   are corrected by posting a **reversal entry**.
+   deletes them, and database triggers reject `UPDATE`, `DELETE` and `TRUNCATE`.
+   Mistakes are corrected by posting a **reversal entry**.
 6. Every entry has a unique **reference** such as `payment:{id}:capture`. A
    second attempt to post the same reference is rejected, which makes the
    ledger itself idempotent no matter what the caller does.
@@ -132,7 +132,7 @@ use), and the sum of all debits always equals the sum of all credits.
 | Customer wallet | - | Liability | Credit | One per customer per currency |
 | Merchant balance | - | Liability | Credit | One per merchant per currency |
 | Authorization holds | `platform.holds.<CCY>` | Liability | Credit | Platform |
-| Platform cash | `platform.cash.<CCY>` | Asset | Debit | Platform; mirrors the money at the partner bank |
+| Platform cash | `platform.cash.<CCY>` | Asset | Debit | Platform. Mirrors the money at the partner bank |
 | Fee revenue | `platform.fees.<CCY>` | Revenue | Credit | Platform |
 
 System accounts are created per supported currency by a Flyway migration.
@@ -337,7 +337,7 @@ module boundaries are verified on every build by Spring Modulith
 
 Microservices aren't used, for three reasons:
 
-- One team owns the whole system, and that team is me. Microservices solve coordination problems between teams; there's no one to coordinate with.
+- One team owns the whole system, and that team is me. Microservices solve coordination problems between teams, and there's no one to coordinate with.
 - Moving money requires **strong consistency**: a payment's state change and
   its journal entry must commit in **one database transaction**.
 - Distributed transactions or sagas would add failure modes without solving a
@@ -365,7 +365,7 @@ flowchart LR
 
 | Module | Responsibility | Depends on |
 |---|---|---|
-| `common` | `Money`, typed IDs, Problem Details error handling, idempotency support. This is an *open* module. | - |
+| `common` | `Money`, Problem Details error handling, idempotency support. This is an *open* module. | - |
 | `bookkeeping` | Accounts, journal entries, postings, balances, integrity checks. The core of the system. | `common` |
 | `transfers` | Deposits, withdrawals and wallet-to-wallet transfers. | `bookkeeping` |
 | `merchants` | Merchants, fee schedules, API keys and webhook endpoint configuration. | `common` |
@@ -387,25 +387,24 @@ Rules:
 
 ### Package layout
 
-In Spring Modulith, **only the types in a module's base package are public**;
-every sub-package is internal. Other modules use the facade, commands, results
+In Spring Modulith, **only the types in a module's base package are public**.
+Every sub-package is internal. Other modules use the facade, commands, results
 and events, and never entities or repositories.
 
 ```
 org.codeberg.edryal.ledger
 |-- common/
-|   |-- Money.java, CurrencyCode.java ...
+|   |-- Money.java
 |   |-- problem/                         # @RestControllerAdvice, ProblemDetail types
 |   `-- idempotency/
 |-- bookkeeping/
 |   |-- Ledger.java                      # facade (public API)
 |   |-- AccountId.java, OpenAccount.java, PostEntry.java, PostResult.java ...
 |   |-- domain/                          # pure Java, no Spring/JPA annotations
-|   |   |-- Account.java, AccountType.java, Direction.java
-|   |   |-- JournalEntry.java, Posting.java
-|   |   `-- BalanceChange.java
+|   |   |-- Account.java, AccountCategory.java, Direction.java
+|   |   `-- JournalEntry.java, Posting.java
 |   |-- application/                     # LedgerService implements Ledger, @Transactional
-|   |-- infrastructure/                  # JPA entities, repositories, JdbcClient queries
+|   |-- infrastructure/                  # JdbcClient repositories (plain SQL, no JPA)
 |   `-- web/                             # account + statement endpoints
 |-- transfers/      (TransferService, Transfer, web/, persistence/)
 |-- merchants/      (MerchantDirectory facade, FeeSchedule, ApiKey ...)
@@ -416,6 +415,9 @@ org.codeberg.edryal.ledger
 Only `bookkeeping` uses a hexagonal split (`domain` / `application` /
 `infrastructure`), because that's where the complex invariants are. The other
 modules are organized by feature, with fewer layers.
+
+Typed IDs live in the module that owns them: `AccountId` and `JournalEntryId`
+in `bookkeeping`, `PaymentId` in `payments`, and so on.
 
 ### Bookkeeping facade
 
@@ -543,6 +545,7 @@ accounts
   currency         char(3)
   owner_id         uuid null
   created_at       timestamptz
+  unique (id, currency)                      -- target of the postings FK below
 
 account_balances
   account_id       uuid pk fk -> accounts
@@ -560,10 +563,11 @@ journal_entries                              -- append-only (trigger)
 postings                                     -- append-only (trigger)
   id               uuid pk
   entry_id         uuid fk -> journal_entries
-  account_id       uuid fk -> accounts
+  account_id       uuid
   direction        text                      -- DEBIT | CREDIT
   amount           bigint  CHECK (amount > 0)
   currency         char(3)
+  fk (account_id, currency) -> accounts (id, currency)   -- rule 4 in the database
   posted_at        timestamptz               -- copied from the entry
   index (account_id, posted_at, id)          -- account statements, newest first
 
@@ -575,10 +579,13 @@ idempotency_keys
   created_at       timestamptz
 ```
 
-Module tables: `transfers`; `merchants`, `fee_schedules`, `api_keys`
-(hashed); `payments` (amount, fee, status, captured/refunded totals,
-`version`); `payment_refunds`; `webhook_endpoints`, `webhook_deliveries`; and
-`event_publication` (Spring Modulith).
+Module tables:
+
+- transfers: `transfers`
+- merchants: `merchants`, `fee_schedules`, `api_keys` (hashed)
+- payments: `payments` (amount, fee, status, captured/refunded totals, `version`), `payment_refunds`
+- webhooks: `webhook_endpoints`, `webhook_deliveries`
+- Spring Modulith: `event_publication`
 
 Each module owns its tables. No module queries another module's tables
 directly.
@@ -717,8 +724,9 @@ rejects timestamps older than 5 minutes to prevent replays.
 |---|---|---|
 | Modular monolith | Microservices | One team, ACID across ledger and payments, simpler operations. Event-based modules can be extracted later. |
 | `long` minor units | `BigDecimal`, `NUMERIC` | Exact, fast, no scale or `equals` pitfalls, maps 1:1 to JSON integers. `BigDecimal` is used only for intermediate fee math. |
-| Stored balances + pessimistic row locks, ordered by account ID | Computing balances from postings on read; optimistic locking | Reads cost O(1). Optimistic retries would thrash on busy wallets. Ordered locking prevents deadlocks. |
+| Stored balances + pessimistic row locks, ordered by account ID | Computing balances from postings on read, or optimistic locking | Reads cost O(1). Optimistic retries would thrash on busy wallets. Ordered locking prevents deadlocks. |
 | Append-only entries + reversals | Updating rows | Full audit trail, history can be reproduced, and corrections are visible. |
+| Plain SQL (`JdbcClient`) for the ledger, JPA for payments | JPA everywhere | Ledger tables are append-only and need explicit `FOR UPDATE` ordering, so JPA adds nothing there. Payments are mutable aggregates with optimistic locking, which is what JPA is good at. |
 | Synchronous ledger calls, async events for side effects | Event-driven ledger updates | Money movement must be atomic with business state. Notifications don't need to be. |
 | Result type for business rejections | Exceptions | Keeps the transaction usable so declines can be recorded. |
 | Idempotency key in the business transaction | Separate "in-progress" record | One atomic commit, no orphaned keys, and the database resolves concurrent duplicates. |
