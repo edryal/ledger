@@ -641,7 +641,7 @@ Errors follow RFC 9457 Problem Details (`application/problem+json`):
 
 | Status | Problem types |
 |---|---|
-| 400 | `validation-failed`, `missing-idempotency-key` |
+| 400 | `validation-failed`, `missing-idempotency-key`, `invalid-cursor` |
 | 401 / 403 | `unauthenticated`, `forbidden` |
 | 404 | `not-found` |
 | 409 | `invalid-state-transition`, `concurrent-modification`, `duplicate-reference` |

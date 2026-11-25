@@ -1,6 +1,7 @@
 package org.codeberg.edryal.ledger.bookkeeping.application;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Currency;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -62,7 +63,8 @@ class LedgerService implements Ledger {
     @Override
     public PostResult post(PostEntry command) {
         // 1. Validate the entry on its own: >= 2 postings, balanced per currency.
-        var entry = new JournalEntry(JournalEntryId.newId(), command.reference(), command.description(), Instant.now(),
+        Instant postedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
+        var entry = new JournalEntry(JournalEntryId.newId(), command.reference(), command.description(), postedAt,
                 command.postings());
 
         // 2. Lock the balance rows of every account involved, in account ID order.

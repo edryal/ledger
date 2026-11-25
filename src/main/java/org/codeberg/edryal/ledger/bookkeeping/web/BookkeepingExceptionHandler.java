@@ -4,6 +4,8 @@ import java.net.URI;
 
 import org.codeberg.edryal.ledger.bookkeeping.AccountNotFoundException;
 import org.codeberg.edryal.ledger.bookkeeping.DuplicateReferenceException;
+import org.codeberg.edryal.ledger.bookkeeping.JournalEntryNotFoundException;
+import org.codeberg.edryal.ledger.bookkeeping.application.InvalidCursorException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -28,5 +30,15 @@ class BookkeepingExceptionHandler {
         problem.setType(URI.create("/problems/" + type));
         problem.setTitle(title);
         return problem;
+    }
+
+    @ExceptionHandler
+    ProblemDetail journalEntryNotFound(JournalEntryNotFoundException e) {
+        return problem(HttpStatus.NOT_FOUND, "not-found", "Journal entry not found", e);
+    }
+
+    @ExceptionHandler
+    ProblemDetail invalidCursor(InvalidCursorException e) {
+        return problem(HttpStatus.BAD_REQUEST, "invalid-cursor", "Invalid cursor", e);
     }
 }
