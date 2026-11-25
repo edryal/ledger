@@ -1,0 +1,32 @@
+package org.codeberg.edryal.ledger.bookkeeping.web;
+
+import java.net.URI;
+
+import org.codeberg.edryal.ledger.bookkeeping.AccountNotFoundException;
+import org.codeberg.edryal.ledger.bookkeeping.DuplicateReferenceException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+/** Turns bookkeeping exceptions into RFC 9457 Problem Details responses. */
+@RestControllerAdvice
+class BookkeepingExceptionHandler {
+
+    @ExceptionHandler
+    ProblemDetail accountNotFound(AccountNotFoundException e) {
+        return problem(HttpStatus.NOT_FOUND, "not-found", "Account not found", e);
+    }
+
+    @ExceptionHandler
+    ProblemDetail duplicateReference(DuplicateReferenceException e) {
+        return problem(HttpStatus.CONFLICT, "duplicate-reference", "Duplicate reference", e);
+    }
+
+    private static ProblemDetail problem(HttpStatus status, String type, String title, Exception e) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, e.getMessage());
+        problem.setType(URI.create("/problems/" + type));
+        problem.setTitle(title);
+        return problem;
+    }
+}

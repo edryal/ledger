@@ -644,7 +644,7 @@ Errors follow RFC 9457 Problem Details (`application/problem+json`):
 | 400 | `validation-failed`, `missing-idempotency-key` |
 | 401 / 403 | `unauthenticated`, `forbidden` |
 | 404 | `not-found` |
-| 409 | `invalid-state-transition`, `concurrent-modification` |
+| 409 | `invalid-state-transition`, `concurrent-modification`, `duplicate-reference` |
 | 422 | `insufficient-funds`, `currency-mismatch`, `idempotency-key-reused`, `refund-exceeds-captured`, `amount-below-fee` |
 
 ---

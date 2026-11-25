@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: ledger
+  mvc:
+    problemdetails:
+      enabled: true
+  jackson:
+    property-naming-strategy: SNAKE_CASE
   jpa:
     open-in-view: false
     hibernate:
