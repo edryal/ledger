@@ -116,8 +116,10 @@ use), and the sum of all debits always equals the sum of all credits.
 
 - All timestamps are UTC: `Instant` in Java, `timestamptz` in PostgreSQL and
   ISO-8601 with `Z` in JSON.
-- Primary keys are **UUIDv7**. They're time-ordered, so B-tree inserts stay
-  local.
+- Primary keys are random **UUIDs** (version 4, `UUID.randomUUID()`), generated
+  in Java so that an object has its ID before it is saved. They are unguessable,
+  so they are safe to use in URLs. Ordering always uses timestamps
+  (`posted_at`, `created_at`), never IDs.
 - In Java, identifiers are typed records (`AccountId`, `PaymentId`, ...), never
   a bare `UUID` or `String`.
 
@@ -562,7 +564,8 @@ postings                                     -- append-only (trigger)
   direction        text                      -- DEBIT | CREDIT
   amount           bigint  CHECK (amount > 0)
   currency         char(3)
-  index (account_id, entry_id)               -- account statements
+  posted_at        timestamptz               -- copied from the entry
+  index (account_id, posted_at, id)          -- account statements, newest first
 
 idempotency_keys
   client_id, key   pk
@@ -738,10 +741,10 @@ rejects timestamps older than 5 minutes to prevent replays.
 
 ### M1 - Bookkeeping core
 
-- [ ] `Money` and typed IDs in `common`, with unit tests
-- [ ] Domain: `Account`, `Direction`, `JournalEntry`, `Posting`, with invariant tests
-- [ ] Flyway `V1`: accounts, balances, journal entries, postings, append-only trigger, system accounts
-- [ ] `Ledger` facade: open account, post entry (ordered locking), balance
+- [x] `Money` in `common` and typed IDs in `bookkeeping`, with unit tests
+- [x] Domain: `Direction`, `AccountCategory`, `Posting`, `JournalEntry`, with invariant tests
+- [x] Flyway `V2`: accounts, balances, journal entries, postings, append-only trigger, system accounts
+- [ ] `Ledger` facade: `Account`, open account, post entry (ordered locking), balance
 - [ ] Account, statement (cursor pagination) and journal-entry endpoints
 - [ ] Problem Details error handling
 - [ ] Integrity checks and the `ledger` health contributor
@@ -788,8 +791,9 @@ Requirements: JDK 25 and a running Docker daemon.
 ./mvnw test              # unit, module and integration tests (Testcontainers)
 ```
 
-Running `ModularityTests` generates module diagrams into
-`target/spring-modulith-docs`.
+Running `ModularityTests` generates module diagrams into `target/spring-modulith-docs`.
+
+Ports, database access, debugging and migrations: [docs/development.md](docs/development.md).
 
 ## Tech stack
 

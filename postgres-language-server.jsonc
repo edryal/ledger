@@ -1,0 +1,29 @@
+{
+    "$schema": "https://pg-language-server.com/0.28.2/schema.json",
+    "vcs": {
+        "enabled": true,
+        "clientKind": "git",
+        "useIgnoreFile": true
+    },
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "recommended": true
+        }
+    },
+    "typecheck": {
+        "enabled": true
+    },
+    "plpgsqlCheck": {
+        "enabled": true
+    },
+    "db": {
+        "host": "127.0.0.1",
+        "port": 5433,
+        "username": "ledger",
+        "password": "ledger",
+        "database": "ledger",
+        "connTimeoutSecs": 10,
+        "disableConnection": false
+    }
+}
