@@ -81,12 +81,20 @@ class LedgerIntegrityTest {
 
     private void deposit(AccountId wallet, long cents) {
         AccountId cash = ledger.systemAccount(SystemAccount.CASH, EUR);
-        ledger.post(new PostEntry("deposit:" + UUID.randomUUID(), "deposit", List.of(
-                Posting.debit(cash, Money.of(cents, EUR)), Posting.credit(wallet, Money.of(cents, EUR)))));
+        var command = new PostEntry(
+                "deposit:" + UUID.randomUUID(),
+                "deposit",
+                List.of(Posting.debit(cash, Money.of(cents, EUR)), Posting.credit(wallet, Money.of(cents, EUR))));
+
+        ledger.post(command);
     }
 
     private void transfer(AccountId from, AccountId to, long cents) {
-        ledger.post(new PostEntry("transfer:" + UUID.randomUUID(), "transfer", List.of(
-                Posting.debit(from, Money.of(cents, EUR)), Posting.credit(to, Money.of(cents, EUR)))));
+        var command = new PostEntry(
+                "transfer:" + UUID.randomUUID(),
+                "transfer",
+                List.of(Posting.debit(from, Money.of(cents, EUR)), Posting.credit(to, Money.of(cents, EUR))));
+
+        ledger.post(command);
     }
 }

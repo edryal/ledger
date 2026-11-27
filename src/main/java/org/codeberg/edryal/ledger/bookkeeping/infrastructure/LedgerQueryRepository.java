@@ -24,18 +24,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class LedgerQueryRepository {
 
-    private static final String STATEMENT_SELECT = """
-            SELECT p.id, p.entry_id, e.reference, e.description, p.direction, p.amount, p.currency, p.posted_at
-            FROM postings p
-            JOIN journal_entries e ON e.id = p.entry_id
-            WHERE p.account_id = :accountId
-            """;
-
-    private static final String STATEMENT_ORDER = """
-            ORDER BY p.posted_at DESC, p.id DESC
-            LIMIT :limit
-            """;
-
     private final JdbcClient jdbc;
 
     public LedgerQueryRepository(JdbcClient jdbc) {
@@ -47,58 +35,95 @@ public class LedgerQueryRepository {
      * are returned. Returns at most {@code limit} lines.
      */
     public List<StatementLine> findStatement(AccountId accountId, Optional<Cursor> after, int limit) {
-        String sql = after.isPresent() ?
-                STATEMENT_SELECT + "AND (p.posted_at, p.id) < (:cursorAt, :cursorId)\n" + STATEMENT_ORDER :
-                STATEMENT_SELECT + STATEMENT_ORDER;
-
-        var statement = jdbc.sql(sql).param("accountId", accountId.value()).param("limit", limit);
-        if (after.isPresent()) {
-            statement = statement.param("cursorAt", after.get().postedAt().atOffset(ZoneOffset.UTC))
-                    .param("cursorId", after.get().postingId());
+        if (after.isEmpty()) {
+            String sql = """
+                    SELECT p.id, p.entry_id, e.reference, e.description, p.direction, p.amount, p.currency, p.posted_at
+                    FROM postings p
+                    JOIN journal_entries e ON e.id = p.entry_id
+                    WHERE p.account_id = :accountId
+                    ORDER BY p.posted_at DESC, p.id DESC
+                    LIMIT :limit
+                    """;
+            return jdbc.sql(sql)
+                    .param("accountId", accountId.value())
+                    .param("limit", limit)
+                    .query(LedgerQueryRepository::statementLine)
+                    .list();
         }
 
-        return statement.query(LedgerQueryRepository::statementLine).list();
+        Cursor cursor = after.get();
+        String sql = """
+                SELECT p.id, p.entry_id, e.reference, e.description, p.direction, p.amount, p.currency, p.posted_at
+                FROM postings p
+                JOIN journal_entries e ON e.id = p.entry_id
+                WHERE p.account_id = :accountId
+                  AND (p.posted_at, p.id) < (:cursorAt, :cursorId)
+                ORDER BY p.posted_at DESC, p.id DESC
+                LIMIT :limit
+                """;
+        return jdbc.sql(sql)
+                .param("accountId", accountId.value())
+                .param("cursorAt", cursor.postedAt().atOffset(ZoneOffset.UTC))
+                .param("cursorId", cursor.postingId())
+                .param("limit", limit)
+                .query(LedgerQueryRepository::statementLine)
+                .list();
     }
 
     public Optional<JournalEntry> findEntry(JournalEntryId id) {
-        record Header(String reference, String description, OffsetDateTime postedAt) {
-        }
-
-        Optional<Header> header = jdbc.sql(
-                "SELECT reference, description, posted_at FROM journal_entries WHERE id = :id")
+        String sql = "SELECT reference, description, posted_at FROM journal_entries WHERE id = :id";
+        Optional<EntryHeader> header = jdbc.sql(sql)
                 .param("id", id.value())
-                .query((resultSet, rowNum) -> new Header(
-                        resultSet.getString("reference"), resultSet.getString("description"),
-                        resultSet.getObject("posted_at", OffsetDateTime.class)))
+                .query(LedgerQueryRepository::entryHeader)
                 .optional();
-
-        return header.map(
-                h -> new JournalEntry(id, h.reference(), h.description(), h.postedAt().toInstant(), findPostings(id)));
+        return header.map(found -> found.toEntry(id, findPostings(id)));
     }
 
     private List<Posting> findPostings(JournalEntryId entryId) {
-        return jdbc.sql("""
+        String sql = """
                 SELECT account_id, direction, amount, currency
                 FROM postings
                 WHERE entry_id = :entryId
                 ORDER BY direction DESC, id
-                """)
-                .param("entryId", entryId.value())
-                .query((resultSet, rowNum) -> new Posting(
-                        new AccountId(resultSet.getObject("account_id", UUID.class)),
-                        Direction.valueOf(resultSet.getString("direction")), money(resultSet)))
-                .list();
+                """;
+        return jdbc.sql(sql).param("entryId", entryId.value()).query(LedgerQueryRepository::posting).list();
+    }
+
+    /** The journal_entries row, before its postings are loaded. */
+    private record EntryHeader(String reference, String description, OffsetDateTime postedAt) {
+
+        JournalEntry toEntry(JournalEntryId id, List<Posting> postings) {
+            return new JournalEntry(id, reference, description, postedAt.toInstant(), postings);
+        }
+    }
+
+    private static EntryHeader entryHeader(ResultSet resultSet, int rowNum) throws SQLException {
+        return new EntryHeader(
+                resultSet.getString("reference"),
+                resultSet.getString("description"),
+                resultSet.getObject("posted_at", OffsetDateTime.class));
+    }
+
+    private static Posting posting(ResultSet resultSet, int rowNum) throws SQLException {
+        return new Posting(
+                new AccountId(resultSet.getObject("account_id", UUID.class)),
+                Direction.valueOf(resultSet.getString("direction")),
+                money(resultSet));
     }
 
     private static StatementLine statementLine(ResultSet resultSet, int rowNum) throws SQLException {
         return new StatementLine(
-                resultSet.getObject("id", UUID.class), new JournalEntryId(resultSet.getObject("entry_id", UUID.class)),
-                resultSet.getString("reference"), resultSet.getString("description"),
-                Direction.valueOf(resultSet.getString("direction")), money(resultSet),
+                resultSet.getObject("id", UUID.class),
+                new JournalEntryId(resultSet.getObject("entry_id", UUID.class)),
+                resultSet.getString("reference"),
+                resultSet.getString("description"),
+                Direction.valueOf(resultSet.getString("direction")),
+                money(resultSet),
                 resultSet.getObject("posted_at", OffsetDateTime.class).toInstant());
     }
 
     private static Money money(ResultSet resultSet) throws SQLException {
-        return Money.of(resultSet.getLong("amount"), Currency.getInstance(resultSet.getString("currency")));
+        Currency currency = Currency.getInstance(resultSet.getString("currency"));
+        return Money.of(resultSet.getLong("amount"), currency);
     }
 }

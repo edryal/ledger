@@ -2,10 +2,10 @@ package org.codeberg.edryal.ledger.bookkeeping.domain;
 
 import java.time.Instant;
 import java.util.Currency;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import org.codeberg.edryal.ledger.bookkeeping.JournalEntryId;
 import org.codeberg.edryal.ledger.bookkeeping.Posting;
@@ -22,8 +22,12 @@ import org.codeberg.edryal.ledger.bookkeeping.Posting;
  *
  * <p>Entries are immutable and are never changed after posting. Mistakes are corrected with a reversal entry.
  */
-public record JournalEntry(JournalEntryId id, String reference, String description, Instant postedAt,
-                           List<Posting> postings) {
+public record JournalEntry(
+        JournalEntryId id,
+        String reference,
+        String description,
+        Instant postedAt,
+        List<Posting> postings) {
 
     public JournalEntry {
         Objects.requireNonNull(id, "id must not be null");
@@ -43,9 +47,10 @@ public record JournalEntry(JournalEntryId id, String reference, String descripti
     }
 
     private static void requireBalancedPerCurrency(List<Posting> postings) {
-        Map<Currency, Long> netByCurrency = postings.stream()
-                .collect(Collectors.groupingBy(p -> p.amount().currency(),
-                        Collectors.reducing(0L, Posting::signedMinorUnits, Math::addExact)));
+        Map<Currency, Long> netByCurrency = new HashMap<>();
+        for (Posting posting : postings) {
+            netByCurrency.merge(posting.amount().currency(), posting.signedMinorUnits(), Math::addExact);
+        }
 
         netByCurrency.forEach((currency, net) -> {
             if (net != 0) {

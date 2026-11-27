@@ -1,7 +1,6 @@
 package org.codeberg.edryal.ledger.transfers;
 
-import java.net.URI;
-
+import org.codeberg.edryal.ledger.common.web.Problems;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -13,23 +12,16 @@ class TransferExceptionHandler {
 
     @ExceptionHandler
     ProblemDetail insufficientFunds(InsufficientFundsException e) {
-        return problem(HttpStatus.UNPROCESSABLE_CONTENT, "insufficient-funds", "Insufficient funds", e);
+        return Problems.of(HttpStatus.UNPROCESSABLE_CONTENT, "insufficient-funds", "Insufficient funds", e);
     }
 
     @ExceptionHandler
     ProblemDetail sameAccount(SameAccountException e) {
-        return problem(HttpStatus.UNPROCESSABLE_CONTENT, "same-account", "Same account", e);
+        return Problems.of(HttpStatus.UNPROCESSABLE_CONTENT, "same-account", "Same account", e);
     }
 
     @ExceptionHandler
     ProblemDetail transferNotFound(TransferNotFoundException e) {
-        return problem(HttpStatus.NOT_FOUND, "not-found", "Transfer not found", e);
-    }
-
-    private static ProblemDetail problem(HttpStatus status, String type, String title, Exception e) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, e.getMessage());
-        problem.setType(URI.create("/problems/" + type));
-        problem.setTitle(title);
-        return problem;
+        return Problems.of(HttpStatus.NOT_FOUND, "not-found", "Transfer not found", e);
     }
 }

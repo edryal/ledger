@@ -1,8 +1,8 @@
 package org.codeberg.edryal.ledger.bookkeeping.infrastructure;
 
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
-
 import org.codeberg.edryal.ledger.bookkeeping.DuplicateReferenceException;
 import org.codeberg.edryal.ledger.bookkeeping.Posting;
 import org.codeberg.edryal.ledger.bookkeeping.domain.JournalEntry;
@@ -20,6 +20,8 @@ public class JournalEntryRepository {
     }
 
     public void insert(JournalEntry entry) {
+        OffsetDateTime postedAt = entry.postedAt().atOffset(ZoneOffset.UTC);
+
         try {
             jdbc.sql("""
                     INSERT INTO journal_entries (id, reference, description, posted_at)
@@ -28,12 +30,13 @@ public class JournalEntryRepository {
                     .param("id", entry.id().value())
                     .param("reference", entry.reference())
                     .param("description", entry.description())
-                    .param("postedAt", entry.postedAt().atOffset(ZoneOffset.UTC))
+                    .param("postedAt", postedAt)
                     .update();
         } catch (DuplicateKeyException e) {
             throw new DuplicateReferenceException(entry.reference());
         }
 
+        // TODO: one multi-row INSERT instead of one INSERT per posting (2-3 round trips per entry)
         for (Posting posting : entry.postings()) {
             jdbc.sql("""
                     INSERT INTO postings (id, entry_id, account_id, direction, amount, currency, posted_at)
@@ -45,7 +48,7 @@ public class JournalEntryRepository {
                     .param("direction", posting.direction().name())
                     .param("amount", posting.amount().minorUnits())
                     .param("currency", posting.amount().currency().getCurrencyCode())
-                    .param("postedAt", entry.postedAt().atOffset(ZoneOffset.UTC))
+                    .param("postedAt", postedAt)
                     .update();
         }
     }

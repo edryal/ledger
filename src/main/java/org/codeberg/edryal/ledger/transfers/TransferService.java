@@ -29,13 +29,23 @@ class TransferService {
 
     Transfer deposit(AccountId account, Money amount, String description) {
         AccountId cash = ledger.systemAccount(SystemAccount.CASH, amount.currency());
-        return execute(TransferKind.DEPOSIT, Optional.empty(), Optional.of(account), amount, description,
+        return execute(
+                TransferKind.DEPOSIT,
+                Optional.empty(),
+                Optional.of(account),
+                amount,
+                description,
                 List.of(Posting.debit(cash, amount), Posting.credit(account, amount)));
     }
 
     Transfer withdraw(AccountId account, Money amount, String description) {
         AccountId cash = ledger.systemAccount(SystemAccount.CASH, amount.currency());
-        return execute(TransferKind.WITHDRAWAL, Optional.of(account), Optional.empty(), amount, description,
+        return execute(
+                TransferKind.WITHDRAWAL,
+                Optional.of(account),
+                Optional.empty(),
+                amount,
+                description,
                 List.of(Posting.debit(account, amount), Posting.credit(cash, amount)));
     }
 
@@ -44,7 +54,12 @@ class TransferService {
             throw new SameAccountException(source);
         }
 
-        return execute(TransferKind.TRANSFER, Optional.of(source), Optional.of(destination), amount, description,
+        return execute(
+                TransferKind.TRANSFER,
+                Optional.of(source),
+                Optional.of(destination),
+                amount,
+                description,
                 List.of(Posting.debit(source, amount), Posting.credit(destination, amount)));
     }
 
@@ -53,19 +68,34 @@ class TransferService {
         return transfers.findById(id).orElseThrow(() -> new TransferNotFoundException(id));
     }
 
-    private Transfer execute(TransferKind kind, Optional<AccountId> source, Optional<AccountId> destination, Money amount, String description, List<Posting> postings) {
+    private Transfer execute(
+            TransferKind kind,
+            Optional<AccountId> source,
+            Optional<AccountId> destination,
+            Money amount,
+            String description,
+            List<Posting> postings) {
         TransferId id = TransferId.newId();
         var entry = new PostEntry("transfer:" + id, description, postings);
 
         return switch (ledger.post(entry)) {
             case PostResult.Posted posted -> {
-                var transfer = new Transfer(id, kind, source, destination, amount, description, posted.entryId(),
+                var transfer = new Transfer(
+                        id,
+                        kind,
+                        source,
+                        destination,
+                        amount,
+                        description,
+                        posted.entryId(),
                         Instant.now().truncatedTo(ChronoUnit.MICROS));
                 transfers.insert(transfer);
                 yield transfer;
             }
-            case PostResult.Rejected rejected -> throw new InsufficientFundsException(rejected.accountId(),
-                    ledger.balanceOf(rejected.accountId()), amount);
+            case PostResult.Rejected rejected -> {
+                Money available = ledger.balanceOf(rejected.accountId());
+                throw new InsufficientFundsException(rejected.accountId(), available, amount);
+            }
         };
     }
 }

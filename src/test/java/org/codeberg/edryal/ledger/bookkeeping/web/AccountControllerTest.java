@@ -29,12 +29,14 @@ class AccountControllerTest {
 
     @Test
     void opensAccountAndReadsItBack() {
+        String string = """
+                {"type": "CUSTOMER_WALLET", "currency": "EUR", "owner_id": "%s"}
+                """;
+
         String location = client.post()
                 .uri("/v1/accounts")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body("""
-                        {"type": "CUSTOMER_WALLET", "currency": "EUR", "owner_id": "%s"}
-                        """.formatted(UUID.randomUUID()))
+                .body(string.formatted(UUID.randomUUID()))
                 .exchange()
                 .expectStatus()
                 .isCreated()
@@ -87,12 +89,14 @@ class AccountControllerTest {
 
     @Test
     void missingFieldIsProblem400() {
+        String body = """
+                {"type": "CUSTOMER_WALLET", "currency": "EUR"}
+                """;
+
         client.post()
                 .uri("/v1/accounts")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body("""
-                        {"type": "CUSTOMER_WALLET", "currency": "EUR"}
-                        """)
+                .body(body)
                 .exchange()
                 .expectStatus()
                 .isBadRequest()

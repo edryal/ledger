@@ -2,7 +2,6 @@ package org.codeberg.edryal.ledger.transfers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.jayway.jsonpath.JsonPath;
 import java.util.ArrayList;
 import java.util.Currency;
 import java.util.List;
@@ -11,6 +10,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
 import org.codeberg.edryal.ledger.TestcontainersConfiguration;
 import org.codeberg.edryal.ledger.bookkeeping.AccountId;
 import org.codeberg.edryal.ledger.bookkeeping.AccountType;
@@ -26,6 +26,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.web.context.WebApplicationContext;
+
+import com.jayway.jsonpath.JsonPath;
 
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
@@ -98,13 +100,13 @@ class IdempotencyTest {
     void sameKeyOnAnotherEndpointIs422() {
         AccountId wallet = openWallet();
         String key = UUID.randomUUID().toString();
-        String body = """
+        String string = """
                 {"account_id": "%s", "amount": {"value": 100, "currency": "EUR"}}
-                """.formatted(wallet);
+                """;
 
-        post("/v1/deposits", key, body).expectStatus().isCreated();
+        post("/v1/deposits", key, string.formatted(wallet)).expectStatus().isCreated();
 
-        post("/v1/withdrawals", key, body).expectStatus()
+        post("/v1/withdrawals", key, string.formatted(wallet)).expectStatus()
                 .isEqualTo(422)
                 .expectBody()
                 .jsonPath("$.type")
@@ -114,13 +116,14 @@ class IdempotencyTest {
     @Test
     void missingKeyIs400() {
         AccountId wallet = openWallet();
+        String string = """
+                {"account_id": "%s", "amount": {"value": 100, "currency": "EUR"}}
+                """;
 
         client.post()
                 .uri("/v1/deposits")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body("""
-                        {"account_id": "%s", "amount": {"value": 100, "currency": "EUR"}}
-                        """.formatted(wallet))
+                .body(string.formatted(wallet))
                 .exchange()
                 .expectStatus()
                 .isBadRequest()
@@ -156,11 +159,13 @@ class IdempotencyTest {
 
         List<Callable<String>> attempts = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
-            attempts.add(() -> transfer(key, body).expectStatus()
-                    .isCreated()
-                    .expectBody(String.class)
-                    .returnResult()
-                    .getResponseBody());
+            attempts.add(() -> {
+                return transfer(key, body).expectStatus()
+                        .isCreated()
+                        .expectBody(String.class)
+                        .returnResult()
+                        .getResponseBody();
+            });
         }
 
         List<String> transferIds = new ArrayList<>();
@@ -189,10 +194,11 @@ class IdempotencyTest {
     }
 
     private static String transferBody(AccountId source, AccountId destination, long cents) {
-        return """
+        String string = """
                 {"source_account_id": "%s", "destination_account_id": "%s",
                  "amount": {"value": %d, "currency": "EUR"}}
-                """.formatted(source, destination, cents);
+                """;
+        return string.formatted(source, destination, cents);
     }
 
     private AccountId openWallet() {
@@ -200,8 +206,9 @@ class IdempotencyTest {
     }
 
     private void deposit(AccountId account, long cents) {
-        post("/v1/deposits", UUID.randomUUID().toString(), """
+        String string = """
                 {"account_id": "%s", "amount": {"value": %d, "currency": "EUR"}}
-                """.formatted(account, cents)).expectStatus().isCreated();
+                """;
+        post("/v1/deposits", UUID.randomUUID().toString(), string.formatted(account, cents)).expectStatus().isCreated();
     }
 }

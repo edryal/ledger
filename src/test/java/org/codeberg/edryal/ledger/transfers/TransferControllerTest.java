@@ -46,10 +46,11 @@ class TransferControllerTest {
     @Test
     void depositCreditsTheAccount() {
         AccountId wallet = openWallet(EUR);
-
-        post("/v1/deposits", """
+        String string = """
                 {"account_id": "%s", "amount": {"value": 10000, "currency": "EUR"}, "description": "salary"}
-                """.formatted(wallet)).expectStatus()
+                """;
+
+        post("/v1/deposits", string.formatted(wallet)).expectStatus()
                 .isCreated()
                 .expectHeader()
                 .exists("Location")
@@ -70,18 +71,20 @@ class TransferControllerTest {
 
     @Test
     void depositIntoUnknownAccountIs404() {
-        post("/v1/deposits", """
+        String string = """
                 {"account_id": "%s", "amount": {"value": 100, "currency": "EUR"}}
-                """.formatted(UUID.randomUUID())).expectStatus().isNotFound();
+                """;
+        post("/v1/deposits", string.formatted(UUID.randomUUID())).expectStatus().isNotFound();
     }
 
     @Test
     void depositInWrongCurrencyIs422() {
         AccountId wallet = openWallet(EUR);
-
-        post("/v1/deposits", """
+        String string = """
                 {"account_id": "%s", "amount": {"value": 100, "currency": "USD"}}
-                """.formatted(wallet)).expectStatus()
+                """;
+
+        post("/v1/deposits", string.formatted(wallet)).expectStatus()
                 .isEqualTo(422)
                 .expectBody()
                 .jsonPath("$.type")
@@ -91,10 +94,11 @@ class TransferControllerTest {
     @Test
     void depositInUnsupportedCurrencyIs422() {
         AccountId wallet = openWallet(EUR);
-
-        post("/v1/deposits", """
+        String string = """
                 {"account_id": "%s", "amount": {"value": 100, "currency": "CHF"}}
-                """.formatted(wallet)).expectStatus()
+                """;
+
+        post("/v1/deposits", string.formatted(wallet)).expectStatus()
                 .isEqualTo(422)
                 .expectBody()
                 .jsonPath("$.type")
@@ -104,10 +108,11 @@ class TransferControllerTest {
     @Test
     void zeroAmountIs400() {
         AccountId wallet = openWallet(EUR);
-
-        post("/v1/deposits", """
+        String string = """
                 {"account_id": "%s", "amount": {"value": 0, "currency": "EUR"}}
-                """.formatted(wallet)).expectStatus()
+                """;
+
+        post("/v1/deposits", string.formatted(wallet)).expectStatus()
                 .isBadRequest()
                 .expectHeader()
                 .contentType(MediaType.APPLICATION_PROBLEM_JSON);
@@ -117,10 +122,11 @@ class TransferControllerTest {
     void withdrawalDebitsTheAccount() {
         AccountId wallet = openWallet(EUR);
         deposit(wallet, 10000);
-
-        post("/v1/withdrawals", """
+        String string = """
                 {"account_id": "%s", "amount": {"value": 3000, "currency": "EUR"}}
-                """.formatted(wallet)).expectStatus()
+                """;
+
+        post("/v1/withdrawals", string.formatted(wallet)).expectStatus()
                 .isCreated()
                 .expectBody()
                 .jsonPath("$.kind")
@@ -135,17 +141,17 @@ class TransferControllerTest {
     void withdrawingMoreThanAvailableIs422() {
         AccountId wallet = openWallet(EUR);
         deposit(wallet, 1000);
-
-        post("/v1/withdrawals", """
+        String string = """
                 {"account_id": "%s", "amount": {"value": 5000, "currency": "EUR"}}
-                """.formatted(wallet)).expectStatus()
+                """;
+
+        post("/v1/withdrawals", string.formatted(wallet)).expectStatus()
                 .isEqualTo(422)
                 .expectBody()
                 .jsonPath("$.type")
                 .isEqualTo("/problems/insufficient-funds")
                 .jsonPath("$.detail")
-                .isEqualTo(
-                        "account %s has 10.00 EUR available, 50.00 EUR required".formatted(wallet));
+                .isEqualTo("account %s has 10.00 EUR available, 50.00 EUR required".formatted(wallet));
 
         assertThat(ledger.balanceOf(wallet)).isEqualTo(Money.of(1000, EUR));
     }
@@ -156,10 +162,12 @@ class TransferControllerTest {
         AccountId bob = openWallet(EUR);
         deposit(catalin, 10000);
 
-        String location = post("/v1/transfers", """
+        String string = """
                 {"source_account_id": "%s", "destination_account_id": "%s",
                  "amount": {"value": 2500, "currency": "EUR"}, "description": "Dinner"}
-                """.formatted(catalin, bob)).expectStatus()
+                """;
+
+        String location = post("/v1/transfers", string.formatted(catalin, bob)).expectStatus()
                 .isCreated()
                 .expectBody()
                 .jsonPath("$.kind")
@@ -194,10 +202,12 @@ class TransferControllerTest {
         AccountId bob = openWallet(EUR);
         deposit(catalin, 1500);
 
-        post("/v1/transfers", """
+        String string = """
                 {"source_account_id": "%s", "destination_account_id": "%s",
                  "amount": {"value": 6000, "currency": "EUR"}}
-                """.formatted(catalin, bob)).expectStatus()
+                """;
+
+        post("/v1/transfers", string.formatted(catalin, bob)).expectStatus()
                 .isEqualTo(422)
                 .expectBody()
                 .jsonPath("$.type")
@@ -213,10 +223,12 @@ class TransferControllerTest {
         AccountId dollars = openWallet(USD);
         deposit(euros, 1000);
 
-        post("/v1/transfers", """
+        String string = """
                 {"source_account_id": "%s", "destination_account_id": "%s",
                  "amount": {"value": 500, "currency": "EUR"}}
-                """.formatted(euros, dollars)).expectStatus()
+                """;
+
+        post("/v1/transfers", string.formatted(euros, dollars)).expectStatus()
                 .isEqualTo(422)
                 .expectBody()
                 .jsonPath("$.type")
@@ -227,10 +239,12 @@ class TransferControllerTest {
     void transferToSameAccountIs422() {
         AccountId wallet = openWallet(EUR);
 
-        post("/v1/transfers", """
+        String string = """
                 {"source_account_id": "%s", "destination_account_id": "%s",
                  "amount": {"value": 100, "currency": "EUR"}}
-                """.formatted(wallet, wallet)).expectStatus()
+                """;
+
+        post("/v1/transfers", string.formatted(wallet, wallet)).expectStatus()
                 .isEqualTo(422)
                 .expectBody()
                 .jsonPath("$.type")

@@ -98,8 +98,10 @@ class LedgerIntegrationTest {
     void sameReferenceCannotBePostedTwice() {
         AccountId wallet = openWallet();
         String reference = "deposit:" + UUID.randomUUID();
-        var command = new PostEntry(reference, "deposit", List.of(
-                Posting.debit(cash(), eur(100)), Posting.credit(wallet, eur(100))));
+        var command = new PostEntry(
+                reference,
+                "deposit",
+                List.of(Posting.debit(cash(), eur(100)), Posting.credit(wallet, eur(100))));
 
         ledger.post(command);
 
@@ -111,25 +113,37 @@ class LedgerIntegrationTest {
     void unbalancedEntryIsRejected() {
         AccountId wallet = openWallet();
 
-        assertThatThrownBy(() -> ledger.post(new PostEntry("test:" + UUID.randomUUID(), "unbalanced", List.of(
-                Posting.debit(cash(), eur(100)), Posting.credit(wallet, eur(99))))))
-                        .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> {
+            PostEntry command = new PostEntry(
+                    "test:" + UUID.randomUUID(),
+                    "unbalanced",
+                    List.of(Posting.debit(cash(), eur(100)), Posting.credit(wallet, eur(99))));
+            ledger.post(command);
+        }).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void postingToUnknownAccountFails() {
-        assertThatThrownBy(() -> ledger.post(new PostEntry("test:" + UUID.randomUUID(), "unknown", List.of(
-                Posting.debit(cash(), eur(100)), Posting.credit(AccountId.newId(), eur(100))))))
-                        .isInstanceOf(AccountNotFoundException.class);
+        assertThatThrownBy(() -> {
+            PostEntry command = new PostEntry(
+                    "test:" + UUID.randomUUID(),
+                    "unknown",
+                    List.of(Posting.debit(cash(), eur(100)), Posting.credit(AccountId.newId(), eur(100))));
+            ledger.post(command);
+        }).isInstanceOf(AccountNotFoundException.class);
     }
 
     @Test
     void postingInWrongCurrencyFails() {
         AccountId wallet = openWallet();
 
-        assertThatThrownBy(() -> ledger.post(new PostEntry("test:" + UUID.randomUUID(), "wrong currency", List.of(
-                Posting.debit(ledger.systemAccount(SystemAccount.CASH, USD), Money.of(100, USD)),
-                Posting.credit(wallet, Money.of(100, USD)))))).isInstanceOf(CurrencyMismatchException.class);
+        assertThatThrownBy(() -> {
+            List<Posting> postings = List.of(
+                    Posting.debit(ledger.systemAccount(SystemAccount.CASH, USD), Money.of(100, USD)),
+                    Posting.credit(wallet, Money.of(100, USD)));
+            PostEntry command = new PostEntry("test:" + UUID.randomUUID(), "wrong currency", postings);
+            ledger.post(command);
+        }).isInstanceOf(CurrencyMismatchException.class);
     }
 
     @Test
@@ -197,13 +211,19 @@ class LedgerIntegrationTest {
     }
 
     private PostResult deposit(AccountId wallet, long cents) {
-        return ledger.post(new PostEntry("deposit:" + UUID.randomUUID(), "deposit", List.of(
-                Posting.debit(cash(), eur(cents)), Posting.credit(wallet, eur(cents)))));
+        PostEntry command = new PostEntry(
+                "deposit:" + UUID.randomUUID(),
+                "deposit",
+                List.of(Posting.debit(cash(), eur(cents)), Posting.credit(wallet, eur(cents))));
+        return ledger.post(command);
     }
 
     private PostResult transfer(AccountId from, AccountId to, long cents) {
-        return ledger.post(new PostEntry("transfer:" + UUID.randomUUID(), "transfer", List.of(
-                Posting.debit(from, eur(cents)), Posting.credit(to, eur(cents)))));
+        PostEntry command = new PostEntry(
+                "transfer:" + UUID.randomUUID(),
+                "transfer",
+                List.of(Posting.debit(from, eur(cents)), Posting.credit(to, eur(cents))));
+        return ledger.post(command);
     }
 
     private static Money eur(long cents) {

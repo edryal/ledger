@@ -6,7 +6,6 @@ import java.util.Currency;
 public class CurrencyMismatchException extends RuntimeException {
 
     public CurrencyMismatchException(AccountId account, Currency accountCurrency, Currency postingCurrency) {
-        super("account %s holds %s, not %s".formatted(account, accountCurrency.getCurrencyCode(),
-                postingCurrency.getCurrencyCode()));
+        super("account %s holds %s, not %s".formatted(account, accountCurrency, postingCurrency));
     }
 }

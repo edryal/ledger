@@ -31,40 +31,65 @@ class TransferController {
         this.idempotency = idempotency;
     }
 
-    record DepositRequest(@NotNull UUID accountId, @Valid @NotNull AmountBody amount,
-                          @Size(max = 255) String description) {
+    record DepositRequest(
+            @NotNull UUID accountId,
+            @Valid @NotNull AmountBody amount,
+            @Size(max = 255) String description) {
     }
 
-    record WithdrawalRequest(@NotNull UUID accountId, @Valid @NotNull AmountBody amount,
-                             @Size(max = 255) String description) {
+    record WithdrawalRequest(
+            @NotNull UUID accountId,
+            @Valid @NotNull AmountBody amount,
+            @Size(max = 255) String description) {
     }
 
-    record TransferRequest(@NotNull UUID sourceAccountId, @NotNull UUID destinationAccountId,
-                           @Valid @NotNull AmountBody amount, @Size(max = 255) String description) {
+    record TransferRequest(
+            @NotNull UUID sourceAccountId,
+            @NotNull UUID destinationAccountId,
+            @Valid @NotNull AmountBody amount,
+            @Size(max = 255) String description) {
     }
 
-    record TransferResponse(UUID id, TransferKind kind, UUID sourceAccountId, UUID destinationAccountId,
-                            MoneyBody amount, String description, UUID journalEntryId, Instant createdAt) {
+    record TransferResponse(
+            UUID id,
+            TransferKind kind,
+            UUID sourceAccountId,
+            UUID destinationAccountId,
+            MoneyBody amount,
+            String description,
+            UUID journalEntryId,
+            Instant createdAt) {
     }
 
     @PostMapping("/v1/deposits")
-    ResponseEntity<TransferResponse> deposit(@RequestHeader(name = Idempotency.HEADER, required = false) String key, @Valid @RequestBody DepositRequest request) {
-        return idempotency.execute(key, "POST /v1/deposits", request, TransferResponse.class, () -> created(service
-                .deposit(new AccountId(request.accountId()), request.amount().toMoney(), request.description())));
+    ResponseEntity<TransferResponse> deposit(
+            @RequestHeader(name = Idempotency.HEADER, required = false) String key,
+            @Valid @RequestBody DepositRequest request) {
+        return idempotency.execute(key, "POST /v1/deposits", request, TransferResponse.class, () -> {
+            var account = new AccountId(request.accountId());
+            return created(service.deposit(account, request.amount().toMoney(), request.description()));
+        });
     }
 
     @PostMapping("/v1/withdrawals")
-    ResponseEntity<TransferResponse> withdraw(@RequestHeader(name = Idempotency.HEADER, required = false) String key, @Valid @RequestBody WithdrawalRequest request) {
-        return idempotency.execute(key, "POST /v1/withdrawals", request, TransferResponse.class, () -> created(service
-                .withdraw(new AccountId(request.accountId()), request.amount().toMoney(), request.description())));
+    ResponseEntity<TransferResponse> withdraw(
+            @RequestHeader(name = Idempotency.HEADER, required = false) String key,
+            @Valid @RequestBody WithdrawalRequest request) {
+        return idempotency.execute(key, "POST /v1/withdrawals", request, TransferResponse.class, () -> {
+            var account = new AccountId(request.accountId());
+            return created(service.withdraw(account, request.amount().toMoney(), request.description()));
+        });
     }
 
     @PostMapping("/v1/transfers")
-    ResponseEntity<TransferResponse> transfer(@RequestHeader(name = Idempotency.HEADER, required = false) String key, @Valid @RequestBody TransferRequest request) {
-        return idempotency.execute(key, "POST /v1/transfers", request, TransferResponse.class,
-                () -> created(service.transfer(new AccountId(request.sourceAccountId()),
-                        new AccountId(request.destinationAccountId()), request.amount().toMoney(),
-                        request.description())));
+    ResponseEntity<TransferResponse> transfer(
+            @RequestHeader(name = Idempotency.HEADER, required = false) String key,
+            @Valid @RequestBody TransferRequest request) {
+        return idempotency.execute(key, "POST /v1/transfers", request, TransferResponse.class, () -> {
+            var source = new AccountId(request.sourceAccountId());
+            var destination = new AccountId(request.destinationAccountId());
+            return created(service.transfer(source, destination, request.amount().toMoney(), request.description()));
+        });
     }
 
     @GetMapping("/v1/transfers/{id}")
@@ -78,8 +103,13 @@ class TransferController {
 
     private static TransferResponse toResponse(Transfer transfer) {
         return new TransferResponse(
-                transfer.id().value(), transfer.kind(), transfer.source().map(AccountId::value).orElse(null),
-                transfer.destination().map(AccountId::value).orElse(null), MoneyBody.from(transfer.amount()),
-                transfer.description(), transfer.journalEntryId().value(), transfer.createdAt());
+                transfer.id().value(),
+                transfer.kind(),
+                transfer.source().map(AccountId::value).orElse(null),
+                transfer.destination().map(AccountId::value).orElse(null),
+                MoneyBody.from(transfer.amount()),
+                transfer.description(),
+                transfer.journalEntryId().value(),
+                transfer.createdAt());
     }
 }

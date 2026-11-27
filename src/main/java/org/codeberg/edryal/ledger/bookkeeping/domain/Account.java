@@ -6,7 +6,6 @@ import java.util.Objects;
 import org.codeberg.edryal.ledger.bookkeeping.AccountId;
 import org.codeberg.edryal.ledger.bookkeeping.Posting;
 
-
 /**
  * A ledger account holding money in exactly one currency.
  *

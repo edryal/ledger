@@ -764,9 +764,9 @@ rejects timestamps older than 5 minutes to prevent replays.
 
 ### M2 - Funding and transfers
 
-- [ ] Idempotency support in `common`
-- [ ] Deposits, withdrawals and transfers
-- [ ] Concurrency test: no double-spend, no deadlocks, integrity holds
+- [x] Idempotency support in `common`
+- [x] Deposits, withdrawals and transfers
+- [x] Concurrency test: no double-spend, no deadlocks, integrity holds
 
 ### M3 - Merchants and payments
 

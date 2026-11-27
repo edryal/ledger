@@ -1,6 +1,6 @@
 package org.codeberg.edryal.ledger.common.idempotency;
 
-import java.net.URI;
+import org.codeberg.edryal.ledger.common.web.Problems;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -12,18 +12,11 @@ class IdempotencyExceptionHandler {
 
     @ExceptionHandler
     ProblemDetail missingKey(MissingIdempotencyKeyException e) {
-        return problem(HttpStatus.BAD_REQUEST, "missing-idempotency-key", "Missing idempotency key", e);
+        return Problems.of(HttpStatus.BAD_REQUEST, "missing-idempotency-key", "Missing idempotency key", e);
     }
 
     @ExceptionHandler
     ProblemDetail keyReused(IdempotencyKeyReusedException e) {
-        return problem(HttpStatus.UNPROCESSABLE_CONTENT, "idempotency-key-reused", "Idempotency key reused", e);
-    }
-
-    private static ProblemDetail problem(HttpStatus status, String type, String title, Exception e) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, e.getMessage());
-        problem.setType(URI.create("/problems/" + type));
-        problem.setTitle(title);
-        return problem;
+        return Problems.of(HttpStatus.UNPROCESSABLE_CONTENT, "idempotency-key-reused", "Idempotency key reused", e);
     }
 }

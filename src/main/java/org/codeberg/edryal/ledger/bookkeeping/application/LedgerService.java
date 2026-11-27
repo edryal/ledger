@@ -5,6 +5,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Currency;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.codeberg.edryal.ledger.bookkeeping.AccountId;
 import org.codeberg.edryal.ledger.bookkeeping.AccountNotFoundException;
@@ -27,12 +28,14 @@ import org.codeberg.edryal.ledger.bookkeeping.infrastructure.AccountRepository;
 import org.codeberg.edryal.ledger.bookkeeping.infrastructure.JournalEntryRepository;
 import org.codeberg.edryal.ledger.common.Money;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
 class LedgerService implements Ledger {
 
+    private final Map<String, AccountId> systemAccounts = new ConcurrentHashMap<>();
     private final AccountRepository accounts;
     private final JournalEntryRepository entries;
 
@@ -56,17 +59,27 @@ class LedgerService implements Ledger {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     public AccountId systemAccount(SystemAccount account, Currency currency) {
         String code = account.code(currency);
-        return accounts.findIdByCode(code).orElseThrow(() -> new UnsupportedCurrencyException(currency));
+        AccountId cached = systemAccounts.get(code);
+        if (cached != null) {
+            return cached;
+        }
+        AccountId id = accounts.findIdByCode(code).orElseThrow(() -> new UnsupportedCurrencyException(currency));
+        systemAccounts.put(code, id);
+        return id;
     }
 
     @Override
     public PostResult post(PostEntry command) {
         // 1. Validate the entry on its own: >= 2 postings, balanced per currency.
         Instant postedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
-        var entry = new JournalEntry(JournalEntryId.newId(), command.reference(), command.description(), postedAt,
+        var entry = new JournalEntry(
+                JournalEntryId.newId(),
+                command.reference(),
+                command.description(),
+                postedAt,
                 command.postings());
 
         // 2. Lock the balance rows of every account involved, in account ID order.

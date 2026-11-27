@@ -14,6 +14,13 @@ import org.codeberg.edryal.ledger.common.Money;
  * @param source      empty for deposits
  * @param destination empty for withdrawals
  */
-record Transfer(TransferId id, TransferKind kind, Optional<AccountId> source, Optional<AccountId> destination,
-                Money amount, String description, JournalEntryId journalEntryId, Instant createdAt) {
+record Transfer(
+        TransferId id,
+        TransferKind kind,
+        Optional<AccountId> source,
+        Optional<AccountId> destination,
+        Money amount,
+        String description,
+        JournalEntryId journalEntryId,
+        Instant createdAt) {
 }

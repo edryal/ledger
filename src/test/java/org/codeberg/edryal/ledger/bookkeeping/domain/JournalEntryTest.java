@@ -29,18 +29,24 @@ class JournalEntryTest {
 
     @Test
     void acceptsBalancedCaptureFromReadme() {
-        var capture = entry(List.of(
-                Posting.debit(holds, eur(2599)), Posting.credit(merchant, eur(2538)), Posting.credit(fees, eur(61))));
+        List<Posting> postings = List.of(
+                Posting.debit(holds, eur(2599)),
+                Posting.credit(merchant, eur(2538)),
+                Posting.credit(fees, eur(61)));
+        var capture = entry(postings);
 
         assertThat(capture.postings()).hasSize(3);
     }
 
     @Test
     void rejectsUnbalancedEntry() {
-        assertThatThrownBy(() -> entry(List.of(
-                Posting.debit(holds, eur(2599)), Posting.credit(merchant, eur(2538)), Posting.credit(fees, eur(60)))))
-                        .isInstanceOf(IllegalArgumentException.class)
-                        .hasMessageContaining("unbalanced");
+        assertThatThrownBy(() -> {
+            List<Posting> postings = List.of(
+                    Posting.debit(holds, eur(2599)),
+                    Posting.credit(merchant, eur(2538)),
+                    Posting.credit(fees, eur(60)));
+            entry(postings);
+        }).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("unbalanced");
     }
 
     @Test
@@ -54,34 +60,34 @@ class JournalEntryTest {
     void rejectsBlankReference() {
         var postings = List.of(Posting.debit(holds, eur(100)), Posting.credit(merchant, eur(100)));
 
-        assertThatThrownBy(() -> new JournalEntry(
-                JournalEntryId.newId(), "  ", "test", Instant.now(), postings))
-                        .isInstanceOf(IllegalArgumentException.class)
-                        .hasMessageContaining("reference");
+        assertThatThrownBy(() -> new JournalEntry(JournalEntryId.newId(), "  ", "test", Instant.now(), postings))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("reference");
     }
 
     @Test
     void rejectsEntryBalancedOnlyAcrossCurrencies() {
         // +1000 EUR and -1000 USD sum to 0 as numbers, but no currency balances on its own
-        assertThatThrownBy(() -> entry(List.of(
-                Posting.debit(holds, eur(1000)), Posting.credit(merchant, Money.of(1000, "USD")))))
-                        .isInstanceOf(IllegalArgumentException.class)
-                        .hasMessageContaining("unbalanced");
+        assertThatThrownBy(() -> {
+            entry(List.of(Posting.debit(holds, eur(1000)), Posting.credit(merchant, Money.of(1000, "USD"))));
+        }).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("unbalanced");
     }
 
     @Test
     void acceptsEntryBalancedInEachCurrency() {
-        var entry = entry(List.of(
-                Posting.debit(holds, eur(1000)), Posting.credit(merchant, eur(1000)),
-                Posting.debit(fees, Money.of(500, "USD")), Posting.credit(holds, Money.of(500, "USD"))));
+        List<Posting> postings = List.of(
+                Posting.debit(holds, eur(1000)),
+                Posting.credit(merchant, eur(1000)),
+                Posting.debit(fees, Money.of(500, "USD")),
+                Posting.credit(holds, Money.of(500, "USD")));
+        var entry = entry(postings);
 
         assertThat(entry.postings()).hasSize(4);
     }
 
     @Test
     void isNotAffectedByChangesToTheOriginalList() {
-        var postings = new ArrayList<>(List.of(
-                Posting.debit(holds, eur(100)), Posting.credit(merchant, eur(100))));
+        var postings = new ArrayList<>(List.of(Posting.debit(holds, eur(100)), Posting.credit(merchant, eur(100))));
         var entry = entry(postings);
 
         postings.add(Posting.debit(fees, eur(999)));
@@ -91,8 +97,7 @@ class JournalEntryTest {
 
     @Test
     void postingsCannotBeModified() {
-        var entry = entry(List.of(
-                Posting.debit(holds, eur(100)), Posting.credit(merchant, eur(100))));
+        var entry = entry(List.of(Posting.debit(holds, eur(100)), Posting.credit(merchant, eur(100))));
 
         assertThatThrownBy(() -> entry.postings().add(Posting.debit(fees, eur(1))))
                 .isInstanceOf(UnsupportedOperationException.class);

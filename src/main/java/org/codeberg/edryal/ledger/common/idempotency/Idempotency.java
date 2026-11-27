@@ -5,10 +5,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.function.Supplier;
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -49,7 +51,12 @@ public class Idempotency {
      * @throws IdempotencyKeyReusedException  if the key was used before with a different request
      */
     @Transactional
-    public <T> ResponseEntity<T> execute(String key, String operation, Object request, Class<T> responseType, Supplier<ResponseEntity<T>> action) {
+    public <T> ResponseEntity<T> execute(
+            String key,
+            String operation,
+            Object request,
+            Class<T> responseType,
+            Supplier<ResponseEntity<T>> action) {
         if (key == null || key.isBlank() || key.length() > 255) {
             throw new MissingIdempotencyKeyException();
         }
@@ -64,10 +71,15 @@ public class Idempotency {
         }
 
         ResponseEntity<T> response = action.get();
-        String location = response.getHeaders().getLocation() == null ? null :
-                response.getHeaders().getLocation().toString();
+        String location = response.getHeaders().getLocation() == null
+                ? null
+                : response.getHeaders().getLocation().toString();
 
-        keys.complete(ANONYMOUS_CLIENT, key, response.getStatusCode().value(), location,
+        keys.complete(
+                ANONYMOUS_CLIENT,
+                key,
+                response.getStatusCode().value(),
+                location,
                 json.writeValueAsString(response.getBody()));
         return response;
     }
