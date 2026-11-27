@@ -507,6 +507,8 @@ equals the account's normal side, and by `-amount` otherwise.
   insufficient-funds`, the whole transaction rolls back, including the key, so a
   retry is evaluated again. A declined payment *is* a committed outcome and is
   replayed.
+- A replayed response is identical to the original, plus an
+  `Idempotent-Replayed: true` header.
 - Keys expire after 24 hours and are removed by a scheduled cleanup job.
 
 The journal-entry `reference` unique constraint is a second, independent

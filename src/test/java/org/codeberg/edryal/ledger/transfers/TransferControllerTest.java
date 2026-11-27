@@ -11,6 +11,7 @@ import org.codeberg.edryal.ledger.bookkeeping.AccountType;
 import org.codeberg.edryal.ledger.bookkeeping.Ledger;
 import org.codeberg.edryal.ledger.bookkeeping.OpenAccount;
 import org.codeberg.edryal.ledger.common.Money;
+import org.codeberg.edryal.ledger.common.idempotency.Idempotency;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -249,7 +250,12 @@ class TransferControllerTest {
     }
 
     private RestTestClient.ResponseSpec post(String uri, String json) {
-        return client.post().uri(uri).contentType(MediaType.APPLICATION_JSON).body(json).exchange();
+        return client.post()
+                .uri(uri)
+                .header(Idempotency.HEADER, UUID.randomUUID().toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(json)
+                .exchange();
     }
 
     private AccountId openWallet(Currency currency) {
